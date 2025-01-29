@@ -44,7 +44,6 @@ async function fetchServiceId(portainerUrl, apiKey, endpointId, serviceName) {
         const services = await httpRequest(options);
         const service = services.find(svc => svc.Spec.Name === serviceName);
         if (!service) {
-            core.setFailed(`Service '${serviceName}' not found!`);
             throw new Error(`Service '${serviceName}' not found.`);
         }
 
@@ -56,7 +55,7 @@ async function fetchServiceId(portainerUrl, apiKey, endpointId, serviceName) {
     }
 }
 
-async function fetchWebhook(portainerUrl, apiKey, serviceId) {
+async function fetchWebhook(portainerUrl, apiKey, serviceId, retryCount = 3) {
     try {
         core.info(`Checking for existing webhook...`);
         const options = {
@@ -66,16 +65,21 @@ async function fetchWebhook(portainerUrl, apiKey, serviceId) {
             headers: { 'X-API-Key': apiKey }
         };
 
-        const webhooks = await httpRequest(options);
-        const webhook = webhooks.find(w => w.ResourceID === serviceId);
+        for (let i = 0; i < retryCount; i++) {
+            const webhooks = await httpRequest(options);
+            const webhook = webhooks.find(w => w.ResourceID === serviceId);
 
-        if (webhook) {
-            const webhookUrl = `${portainerUrl}/api/webhooks/${webhook.Id}`;
-            core.info(`✅ Webhook already exists: ${webhookUrl}`);
-            return webhookUrl;
+            if (webhook) {
+                const webhookUrl = `${portainerUrl}/api/webhooks/${webhook.Id}`;
+                core.info(`✅ Webhook found: ${webhookUrl}`);
+                return webhookUrl;
+            }
+
+            core.info(`🔄 Webhook not found. Retrying in 3 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
-        core.info(`⚠️ No webhook found for service ${serviceId}.`);
+        core.warning(`⚠️ No webhook found for service ${serviceId} after retries.`);
         return null;
     } catch (error) {
         core.setFailed(`Failed to check for existing webhooks: ${error.message}`);
@@ -124,6 +128,10 @@ async function createWebhook(portainerUrl, apiKey, serviceId, endpointId) {
 
 async function triggerWebhook(webhookUrl) {
     try {
+        if (!webhookUrl) {
+            throw new Error(`Webhook URL is null or undefined. Cannot trigger redeployment.`);
+        }
+
         core.info(`Triggering webhook: ${webhookUrl}`);
 
         const options = {
@@ -150,7 +158,7 @@ async function main() {
         // Step 1: Fetch Service ID
         const serviceId = await fetchServiceId(portainerUrl, apiKey, endpointId, serviceName);
 
-        // Step 2: Check for existing webhook
+        // Step 2: Check for existing webhook (retry up to 3 times)
         let webhookUrl = await fetchWebhook(portainerUrl, apiKey, serviceId);
 
         // Step 3: If webhook does not exist, try creating it
