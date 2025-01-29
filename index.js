@@ -38,9 +38,7 @@ async function fetchServiceId(portainerUrl, apiKey, endpointId, serviceName) {
             hostname: new URL(portainerUrl).hostname,
             path: `/api/endpoints/${endpointId}/docker/services`,
             method: 'GET',
-            headers: {
-                'X-API-Key': apiKey
-            }
+            headers: { 'X-API-Key': apiKey }
         };
 
         const services = await httpRequest(options);
@@ -65,9 +63,7 @@ async function fetchWebhook(portainerUrl, apiKey, serviceId) {
             hostname: new URL(portainerUrl).hostname,
             path: `/api/webhooks`,
             method: 'GET',
-            headers: {
-                'X-API-Key': apiKey
-            }
+            headers: { 'X-API-Key': apiKey }
         };
 
         const webhooks = await httpRequest(options);
@@ -79,7 +75,7 @@ async function fetchWebhook(portainerUrl, apiKey, serviceId) {
             return webhookUrl;
         }
 
-        core.info(`⚠️ No webhook found for service ${serviceId}. Creating a new one.`);
+        core.info(`⚠️ No webhook found for service ${serviceId}.`);
         return null;
     } catch (error) {
         core.setFailed(`Failed to check for existing webhooks: ${error.message}`);
@@ -116,6 +112,11 @@ async function createWebhook(portainerUrl, apiKey, serviceId, endpointId) {
         core.info(`✅ Webhook created: ${webhookUrl}`);
         return webhookUrl;
     } catch (error) {
+        if (error.message.includes('HTTP 409')) {
+            core.info(`⚠️ Webhook already exists. Fetching existing webhook...`);
+            return await fetchWebhook(portainerUrl, apiKey, serviceId);
+        }
+
         core.setFailed(`Failed to create webhook: ${error.message}`);
         throw error;
     }
@@ -152,7 +153,7 @@ async function main() {
         // Step 2: Check for existing webhook
         let webhookUrl = await fetchWebhook(portainerUrl, apiKey, serviceId);
 
-        // Step 3: Create webhook if not found
+        // Step 3: If webhook does not exist, try creating it
         if (!webhookUrl) {
             webhookUrl = await createWebhook(portainerUrl, apiKey, serviceId, endpointId);
         }
