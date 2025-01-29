@@ -1,14 +1,50 @@
 const core = require('@actions/core');
-const axios = require('axios');
+const https = require('https');
+
+function httpRequest(options, data = null) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+            let responseBody = '';
+
+            res.on('data', (chunk) => {
+                responseBody += chunk;
+            });
+
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve(JSON.parse(responseBody || '{}'));
+                } else {
+                    reject(new Error(`HTTP ${res.statusCode}: ${responseBody}`));
+                }
+            });
+        });
+
+        req.on('error', (err) => {
+            reject(err);
+        });
+
+        if (data) {
+            req.write(JSON.stringify(data));
+        }
+
+        req.end();
+    });
+}
 
 async function fetchServiceId(portainerUrl, apiKey, endpointId, serviceName) {
     try {
         core.info(`Fetching Service ID for '${serviceName}'...`);
-        const response = await axios.get(`${portainerUrl}/api/endpoints/${endpointId}/docker/services`, {
-            headers: { 'X-API-Key': apiKey }
-        });
+        const options = {
+            hostname: new URL(portainerUrl).hostname,
+            path: `/api/endpoints/${endpointId}/docker/services`,
+            method: 'GET',
+            headers: {
+                'X-API-Key': apiKey
+            }
+        };
 
-        const service = response.data.find(svc => svc.Spec.Name === serviceName);
+        const services = await httpRequest(options);
+        const service = services.find(svc => svc.Spec.Name === serviceName);
         if (!service) {
             core.setFailed(`Service '${serviceName}' not found!`);
             throw new Error(`Service '${serviceName}' not found.`);
@@ -25,14 +61,22 @@ async function fetchServiceId(portainerUrl, apiKey, endpointId, serviceName) {
 async function fetchWebhook(portainerUrl, apiKey, serviceId) {
     try {
         core.info(`Checking for existing webhook...`);
-        const response = await axios.get(`${portainerUrl}/api/webhooks`, {
-            headers: { 'X-API-Key': apiKey }
-        });
+        const options = {
+            hostname: new URL(portainerUrl).hostname,
+            path: `/api/webhooks`,
+            method: 'GET',
+            headers: {
+                'X-API-Key': apiKey
+            }
+        };
 
-        const webhook = response.data.find(w => w.ResourceID === serviceId);
+        const webhooks = await httpRequest(options);
+        const webhook = webhooks.find(w => w.ResourceID === serviceId);
+
         if (webhook) {
-            core.info(`✅ Webhook already exists: ${portainerUrl}/api/webhooks/${webhook.Id}`);
-            return `${portainerUrl}/api/webhooks/${webhook.Id}`;
+            const webhookUrl = `${portainerUrl}/api/webhooks/${webhook.Id}`;
+            core.info(`✅ Webhook already exists: ${webhookUrl}`);
+            return webhookUrl;
         }
 
         core.info(`⚠️ No webhook found for service ${serviceId}. Creating a new one.`);
@@ -46,19 +90,29 @@ async function fetchWebhook(portainerUrl, apiKey, serviceId) {
 async function createWebhook(portainerUrl, apiKey, serviceId, endpointId) {
     try {
         core.info(`Creating new webhook for service ID: ${serviceId}`);
-        const response = await axios.post(`${portainerUrl}/api/webhooks`, {
+        const options = {
+            hostname: new URL(portainerUrl).hostname,
+            path: `/api/webhooks`,
+            method: 'POST',
+            headers: {
+                'X-API-Key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        };
+
+        const body = {
             ResourceID: serviceId,
             EndpointID: parseInt(endpointId, 10),
             WebhookType: 1
-        }, {
-            headers: { 'X-API-Key': apiKey }
-        });
+        };
 
-        if (!response.data || !response.data.Id) {
-            throw new Error(`Failed to create webhook, unexpected response: ${JSON.stringify(response.data)}`);
+        const response = await httpRequest(options, body);
+
+        if (!response || !response.Id) {
+            throw new Error(`Failed to create webhook, unexpected response: ${JSON.stringify(response)}`);
         }
 
-        const webhookUrl = `${portainerUrl}/api/webhooks/${response.data.Id}`;
+        const webhookUrl = `${portainerUrl}/api/webhooks/${response.Id}`;
         core.info(`✅ Webhook created: ${webhookUrl}`);
         return webhookUrl;
     } catch (error) {
@@ -70,7 +124,14 @@ async function createWebhook(portainerUrl, apiKey, serviceId, endpointId) {
 async function triggerWebhook(webhookUrl) {
     try {
         core.info(`Triggering webhook: ${webhookUrl}`);
-        await axios.post(webhookUrl);
+
+        const options = {
+            hostname: new URL(webhookUrl).hostname,
+            path: new URL(webhookUrl).pathname,
+            method: 'POST'
+        };
+
+        await httpRequest(options);
         core.info(`✅ Service redeployed successfully!`);
     } catch (error) {
         core.setFailed(`Failed to trigger webhook: ${error.message}`);
