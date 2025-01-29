@@ -1,0 +1,24 @@
+{
+  "name": "portainer-service-update-action",
+  "version": "1.0.0",
+  "description": "A GitHub Action to fetch, create, and trigger Portainer webhooks for Docker Swarm services.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enzodjabali/update-portainer-service-action.git"
+  },
+  "keywords": [
+    "github-action",
+    "portainer",
+    "docker",
+    "webhook",
+    "ci-cd"
+  ],
+  "author": "Enzo DJABALI",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "axios": "^1.4.0"
+  }
+}

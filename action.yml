@@ -1,0 +1,19 @@
+name: 'Portainer Service Update'
+description: 'Fetches a Portainer service webhook, creates it if missing, and triggers a redeploy'
+author: 'Enzo DJABALI'
+inputs:
+  portainer_url:
+    description: 'Portainer server URL'
+    required: true
+  api_key:
+    description: 'Portainer API Key'
+    required: true
+  endpoint_id:
+    description: 'Portainer endpoint ID'
+    required: true
+  service_name:
+    description: 'The name of the service to redeploy'
+    required: true
+runs:
+  using: 'node16'
+  main: 'index.js'
