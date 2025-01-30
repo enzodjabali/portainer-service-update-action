@@ -1,11 +1,11 @@
 {
   "name": "portainer-service-update-action",
-  "version": "1.0.0",
+  "version": "v1.1.0",
   "description": "A GitHub Action to fetch, create, and trigger Portainer webhooks for Docker Swarm services.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:enzodjabali/update-portainer-service-action.git"
+    "url": "git@github.com:enzodjabali/portainer-service-update-action.git"
   },
   "keywords": [
     "github-action",

@@ -79,7 +79,7 @@ async function fetchWebhook(portainerUrl, apiKey, serviceId) {
             return webhookUrl;
         }
 
-        core.info(`⚠️ No webhook found for service ${serviceId}. Creating a new one.`);
+        core.info(`No webhook found for service ${serviceId}. Creating a new one.`);
         return null;
     } catch (error) {
         core.setFailed(`Failed to check for existing webhooks: ${error.message}`);

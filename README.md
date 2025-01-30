@@ -49,3 +49,23 @@ jobs:
 
 4. **Triggers the webhook to redeploy the service**  
    - Ensures the **latest service version is deployed** in Docker Swarm.
+
+---
+
+## **Development**
+
+To test and run this GitHub Action locally, follow these steps:
+
+### **1. Set Up Required Variables**
+Ensure you have the following variables ready before running the action:
+- `portainerUrl`
+- `apiKey`
+- `endpointId`
+- `serviceName`
+
+### **2. Run Locally with Docker**
+You can execute the action in a local environment using Docker:
+
+```sh
+docker compose up --build
+```
