@@ -1,4 +1,4 @@
-name: Release and Publish
+name: Release GitHub Action
 
 on:
   push:
@@ -9,8 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Create GitHub Release & Publish
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,21 +20,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
-        run: npm install --omit=dev
+        run: npm install
 
-      - name: Extract Version from Tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Bundle Action with NCC
+        run: |
+          npm install -g @vercel/ncc
+          ncc build index.js -o dist
+
+      - name: Commit Built Files
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add dist/
+          git commit -m "Build action for release"
+          git push origin HEAD:main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Release ${{ env.VERSION }}
-          body: "Automated release for version ${{ env.VERSION }}"
+          name: Release ${{ github.ref_name }}
+          body: "Automated release for version ${{ github.ref_name }}"
           draft: false
           prerelease: false
         env:
