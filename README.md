@@ -6,12 +6,12 @@ This **GitHub Action** automates the process of **fetching, creating, and trigge
 
 ## **Inputs**
 
-| Name                      | Description                                                       | Required | Default |
-|---------------------------|-------------------------------------------------------------------|----------|---------|
-| `portainer_url`           | The URL of the Portainer server (e.g., `https://portainer.example.com`). | Yes   |         |
-| `api_key`                 | API Key for Portainer authentication.                           | Yes   |         |
-| `endpoint_id`             | The Portainer environment ID where the service is deployed. | Yes   |         |
-| `service_name`            | The name of the Portainer service to update.                   | Yes   |         |
+| Name                      | Description                                                              | Required |
+|---------------------------|--------------------------------------------------------------------------|----------|
+| `portainer_url`           | The URL of the Portainer server (e.g., `https://portainer.example.com`). | Yes   |
+| `api_key`                 | API Key for Portainer authentication.                                    | Yes   |
+| `endpoint_id`             | The Portainer environment ID where the service is deployed.              | Yes   |
+| `service_name`            | The name of the Portainer service to update.                             | Yes   |
 
 ---
 
