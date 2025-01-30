@@ -1,49 +1,51 @@
-# Build and Push Action
+# Portainer Service Update Action
 
-This Gitea Action builds a Docker image for your project and pushes it to a Docker registry, with support for automatic tagging and pushing as the latest version.
+This **GitHub Action** automates the process of **fetching, creating, and triggering a Portainer service webhook** to redeploy a service after a new Docker image is pushed.
 
-## Features
-- Builds a Docker image from the provided `Dockerfile`.
-- Pushes the Docker image to a specified registry.
-- Supports auto-tagging based on Git tags (e.g., `2`, `2.6`, `2.6.11` for tag `2.6.11`).
-- Optionally pushes the image with the `latest` tag.
+---
 
-## Inputs
+## **Inputs**
 
-| Name             | Description                                                                 | Required | Default |
-|------------------|-----------------------------------------------------------------------------|----------|---------|
-| `docker_registry`| The Docker registry URL (e.g., `git.in.pointvision.fr`).                   | Yes      |         |
-| `docker_username`| Username for the Docker registry.                                          | Yes      |         |
-| `docker_password`| Password or token for the Docker registry.                                 | Yes      |         |
-| `image_name`     | Name of the Docker image (e.g., `my-app`).                                | Yes      |         |
-| `image_tag`      | Tag for the Docker image (e.g., `2.6.11`).                               | Yes      |         |
-| `autotag`        | Boolean to enable auto-tagging based on the version (e.g., `2`, `2.6`).   | No       | `false` |
-| `push_as_latest` | Boolean to push the image with the `latest` tag.                          | No       | `false` |
+| Name                      | Description                                                       | Required | Default |
+|---------------------------|-------------------------------------------------------------------|----------|---------|
+| `portainer_url`           | The URL of the Portainer server (e.g., `https://portainer.example.com`). | Yes   |         |
+| `api_key`                 | API Key for Portainer authentication.                           | Yes   |         |
+| `endpoint_id`             | The Portainer environment ID where the service is deployed. | Yes   |         |
+| `service_name`            | The name of the Portainer service to update.                   | Yes   |         |
 
-## Example Usage
+---
 
-### Workflow File
+## **Example Usage in GitHub Actions**
+
+### **GitHub Actions Workflow**
 ```yaml
 jobs:
-  build_and_push:
-    name: Build and Push MyApp
+  portainer_service_update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build and Push Action
-        uses: https://${{ secrets.REPO_ACCESS_TOKEN }}:@git.in.pointvision.fr/PointVision/build-and-push-action@1
+      - name: Trigger Portainer Webhook
+        uses: enzodjabali/portainer-service-update-action@v1
         with:
-          context: .
-          docker_registry: git.in.pointvision.fr
-          docker_username: ${{ secrets.REGISTRY_USERNAME }}
-          docker_password: ${{ secrets.REGISTRY_PASSWORD }}
-          image_name: pointvision/my-app
-          image_tag: ${{ github.ref_name }}
-          autotag: true
-          push_as_latest: true
+          portainer_url: "https://portainer.example.com"
+          api_key: ${{ secrets.PORTAINER_API_KEY }}
+          endpoint_id: "1"
+          service_name: "my-service"
 ```
 
-## Notes
-- Ensure the required secrets (e.g., `REGISTRY_USERNAME`, `REGISTRY_PASSWORD`, `REPO_ACCESS_TOKEN`) are set in your repository settings.
+---
+
+## **How It Works**
+1. **Fetches the service ID from Portainer**  
+   - Uses `portainer_url`, `api_key`, `endpoint_id`, and `service_name` to retrieve the **correct service**.
+
+2. **Checks if a webhook already exists**  
+   - If a webhook **exists**, it **fetches the existing URL** instead of creating a new one.
+
+3. **Creates a webhook if needed**  
+   - If no webhook is found, it **creates one automatically**.
+
+4. **Triggers the webhook to redeploy the service**  
+   - Ensures the **latest service version is deployed** in Docker Swarm.
