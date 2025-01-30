@@ -31,14 +31,14 @@ jobs:
           npm install -g @vercel/ncc
           ncc build index.js -o dist
 
-      - name: Ensure dist/ is Tracked & Commit
+      - name: Temporarily Commit dist/ for Tagging
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git checkout main  # Ensure we are on the main branch
-          git add dist/ -f  # Force add dist/ even if in .gitignore
+          git add dist/ -f  # Force add dist/
           git commit -m "Build action for release" || echo "No changes to commit"
-          git push origin main  # Ensure main has latest dist/
+          git push origin main  # Push only if necessary
 
       - name: Retag and Push Updated Tag
         run: |
@@ -58,3 +58,9 @@ jobs:
           files: dist/index.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove dist/ from Main Branch After Tagging
+        run: |
+          git rm -r --cached dist/
+          git commit -m "Remove dist/ after release" || echo "Nothing to remove"
+          git push origin main
