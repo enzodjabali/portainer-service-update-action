@@ -35,10 +35,10 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git checkout main  # Ensure we are on the main branch
-          git add dist/ -f  # Force add dist/
-          git commit -m "Build action for release" || echo "No changes to commit"
-          git push origin main  # Push only if necessary
+          git checkout main
+          git add dist/ -f
+          git commit -m "build: prepare action for release" || echo "No changes to commit"
+          git push origin main
 
       - name: Retag and Push Updated Tag
         run: |
@@ -62,5 +62,5 @@ jobs:
       - name: Remove dist/ from Main Branch After Tagging
         run: |
           git rm -r --cached dist/
-          git commit -m "Remove dist/ after release" || echo "Nothing to remove"
+          git commit -m "build: cleanup dist after release" || echo "Nothing to remove"
           git push origin main
